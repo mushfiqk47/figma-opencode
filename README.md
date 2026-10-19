@@ -13,6 +13,8 @@ One package does two things when OpenCode loads it:
 
 Zero runtime dependencies. `@opencode/plugin` is provided by the OpenCode host; this package is a plain ESM module.
 
+> Full build log — how the v2 plugin API was reverse-engineered, how the package was tested, and every gotcha hit along the way: **[BUILD.md](BUILD.md)**.
+
 ## Install
 
 ```sh
