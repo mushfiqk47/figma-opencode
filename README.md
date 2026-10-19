@@ -1,5 +1,9 @@
 # figma-opencode
 
+[![npm version](https://img.shields.io/npm/v/figma-opencode)](https://www.npmjs.com/package/figma-opencode)
+[![license](https://img.shields.io/npm/l/figma-opencode)](LICENSE)
+![OpenCode 2.x](https://img.shields.io/badge/OpenCode-2.x-black)
+
 Figma for OpenCode in one plugin — the OpenCode equivalent of installing the official Claude `figma` plugin.
 
 One package does two things when OpenCode loads it:
@@ -7,7 +11,7 @@ One package does two things when OpenCode loads it:
 1. **Registers the Figma MCP server** — `https://mcp.figma.com/mcp` (remote, OAuth), no config editing.
 2. **Registers all 16 official Figma agent skills** — bundled from Figma's own [mcp-server-guide](https://github.com/figma/mcp-server-guide) repo and served straight from the installed package.
 
-No runtime dependencies. `@opencode/plugin` and `effect` are provided by the OpenCode host; this package is a zero-dep ESM module.
+Zero runtime dependencies. `@opencode/plugin` is provided by the OpenCode host; this package is a plain ESM module.
 
 ## Install
 
@@ -24,7 +28,7 @@ or add it to `opencode.json(c)` (global config: `~/.config/opencode/opencode.jso
 }
 ```
 
-Restart OpenCode if it was running.
+Restart OpenCode if it was already running.
 
 ## One manual step: sign in
 
@@ -34,9 +38,16 @@ OAuth can't be automated. Once per machine:
 /mcps  →  figma  →  Sign in
 ```
 
-A browser window opens; approve access to your Figma account. After that the `figma` MCP tools work in every session.
+A browser window opens; approve access to your Figma account. After that the `figma` MCP tools work in every session. If you already signed in to a `figma` MCP entry before, the plugin reuses those credentials (same name, same URL).
 
 ## Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `mcp` | `true` | Register the Figma MCP server |
+| `mcpName` | `"figma"` | Name of the MCP entry |
+| `url` | `"https://mcp.figma.com/mcp"` | Override the MCP endpoint |
+| `skills` | `true` | Register the bundled Figma skills |
 
 ```jsonc
 {
@@ -44,17 +55,17 @@ A browser window opens; approve access to your Figma account. After that the `fi
     {
       "package": "figma-opencode",
       "options": {
-        "mcp": true,                            // register the Figma MCP server (default true)
-        "mcpName": "figma",                     // name of the MCP entry (default "figma")
-        "url": "https://mcp.figma.com/mcp",     // override the MCP endpoint
-        "skills": true                          // register the bundled Figma skills (default true)
+        // "mcp": true,
+        // "mcpName": "figma",
+        // "url": "https://mcp.figma.com/mcp",
+        // "skills": true
       }
     }
   ]
 }
 ```
 
-All options are optional. Example — use the **Figma desktop app** local server (Dev Mode MCP) instead of the remote one:
+Example — use the **Figma desktop app** local server (Dev Mode MCP) instead of the remote one:
 
 ```jsonc
 {
@@ -67,23 +78,11 @@ All options are optional. Example — use the **Figma desktop app** local server
 }
 ```
 
-## How it works
+## What gets registered
 
-`setup(ctx)` runs when the plugin loads and performs two transforms:
+**MCP:** `figma` → `https://mcp.figma.com/mcp`
 
-```js
-await ctx.mcp.transform((editor) => {
-  editor.set("figma", { type: "remote", url: "https://mcp.figma.com/mcp" })
-})
-
-await ctx.skill.transform((editor) => {
-  for (const skill of bundled) editor.add(skill)
-})
-```
-
-Skill definitions are read from the bundled `skills/` directory at load time: `id` and `name` come from the directory/frontmatter, `description` from the skill's YAML frontmatter, `autoinvoke` is derived from `disable-model-invocation`, and `path` points at the bundled `SKILL.md` so relative `references/…` links inside skills keep working.
-
-## Bundled skills
+**Skills:** all 16 Figma skills, with their `references/` files:
 
 | Skill | Purpose |
 | --- | --- |
@@ -104,16 +103,52 @@ Skill definitions are read from the bundled `skills/` directory at load time: `i
 | `figma-generative-plugins` | Author generative Figma plugins |
 | `figma-use-slides` | Figma Slides-specific `use_figma` flows |
 
+## How it works
+
+`setup(ctx)` runs when the plugin loads and performs two transforms:
+
+```js
+import { Plugin } from "@opencode/plugin"
+
+export default Plugin.define({
+  id: "figma-opencode",
+  async setup(ctx) {
+    await ctx.mcp.transform((editor) => {
+      editor.set("figma", { type: "remote", url: "https://mcp.figma.com/mcp" })
+    })
+
+    await ctx.skill.transform((editor) => {
+      for (const skill of loadSkills()) editor.add(skill)
+    })
+  },
+})
+```
+
+Skills are read from the bundled `skills/` directory at load time: `id`/`name` come from the directory and frontmatter, `description` from YAML frontmatter, `autoinvoke` from `disable-model-invocation`, and `path` points at the bundled `SKILL.md` so relative `references/…` links keep working.
+
+## Verified
+
+Tested end-to-end against OpenCode 2.0.32 on Windows:
+
+- `opencode plugin add figma-opencode` installs from npm and loads from the package cache
+- MCP entry registered programmatically and connects (OAuth state inherited)
+- skills registered from the bundled `skills/` dir (verified with a probe skill visible to the model)
+- package has zero runtime dependencies and loads with no local `node_modules`
+
+## Notes
+
+- **Duplicate skill ids:** if you previously copied `figma-*` skills to `~/.config/opencode/skills/`, the on-disk copies take precedence over the plugin's. Delete the old copies to switch fully to the package.
+- **Releases:** `.github/workflows/publish.yml` publishes to npm when a GitHub Release is published. It needs the repository secret `NPM_TOKEN` (npm granular access token with *Read and write* + *bypass 2FA* enabled).
+- **Version pinning:** `plugins: ["figma-opencode@0.1.1"]` pins an exact version; `opencode plugin update` handles the rest.
+
 ## Uninstall
 
 ```sh
 opencode plugin remove figma-opencode
 ```
 
-If you previously copied the same skills manually into `~/.config/opencode/skills/figma-*`, delete those copies after installing this package so the skills aren't registered twice.
-
 ## License
 
 Plugin code: MIT (see `LICENSE`).
 
-The bundled skills under `skills/` are copied verbatim from [figma/mcp-server-guide](https://github.com/figma/mcp-server-guide) by Figma, Inc. That repository currently ships without a license file; the skills are redistributed here for convenience, with credit. If Figma objects, the skills can be dropped from the package without affecting the MCP registration.
+The bundled skills under `skills/` are copied verbatim from [figma/mcp-server-guide](https://github.com/figma/mcp-server-guide) by Figma, Inc. That repository currently ships without a license file; the skills are redistributed here for convenience, with credit. If Figma objects, the skills can be dropped from the package without affecting MCP registration.

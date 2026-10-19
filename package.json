@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "name": "figma-opencode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Figma for OpenCode in one plugin: registers the Figma MCP server and ships all 16 official Figma agent skills.",
   "type": "module",
   "main": "./index.js",
