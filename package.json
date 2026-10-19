@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "figma-opencode",
+  "version": "0.1.0",
+  "description": "Figma for OpenCode in one plugin: registers the Figma MCP server and ships all 16 official Figma agent skills.",
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "check": "node --check index.js"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "figma",
+    "mcp",
+    "design",
+    "agent-skills"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@opencode/plugin": "^2.0.32"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mushfiqk47/figma-opencode.git"
+  },
+  "homepage": "https://github.com/mushfiqk47/figma-opencode#readme",
+  "bugs": {
+    "url": "https://github.com/mushfiqk47/figma-opencode/issues"
+  }
+}
